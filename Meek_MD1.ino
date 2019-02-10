@@ -1,4 +1,4 @@
-/*Meek MD1 v0.6 31-Jan-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller.
+/*Meek MD1 v0.6 10-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller.
 Predefined commands:
 6000 - Turn the Dimmer On and fade up to the last known DimLevel
 6001 - Turn the Dimmer Off by fading down
@@ -40,10 +40,9 @@ int LowerLimit = 0;
 int TouchUp = 6;
 int TouchDown = 7;
 int DimLevel = 50;
-int Mistik = 0;
 int Meek=UpperLimit;
+int HASystem = UpperLimit;
 int On = 0;
-
 
 #include  <TimerOne.h>        // Avaiable from http://www.arduino.cc/playground/Code/Timer1
 volatile int i=0;             // Variable to use as a counter volatile as it is in an interrupt
@@ -95,13 +94,25 @@ digitalWrite(TouchDown, LOW);
 int Down = digitalRead(TouchDown);
 int Up = digitalRead(TouchUp);
 
-if (Down == HIGH && dim>(LowerLimit) && dim>(LowerLimit) && On==(1)){   
+if (Down == HIGH && dim>(LowerLimit) && dim<=(UpperLimit) && On==(1)){   
 dim=dim-1;
-DimLevel=dim;}
+DimLevel=dim;
+Meek=DimLevel;}
 
-if ( Up == HIGH && dim<(UpperLimit) && DimLevel<(UpperLimit) && On==(1)){
+if (Down == HIGH && Meek==6000){   
+dim=dim-1;
+DimLevel=dim;
+Meek=DimLevel;}
+
+if (Up == HIGH && Meek==6000){   
 dim=dim+1;
-DimLevel=dim;}
+DimLevel=dim;
+Meek=DimLevel;}
+
+if ( Up == HIGH && dim>=(LowerLimit) && dim<(UpperLimit) && On==(1)){
+dim=dim+1;
+DimLevel=dim;
+Meek=DimLevel;}
 //  ------------------- Up & Down Button End ---------------------
 
 //  ------------------- Maintain Upper & LowerLimit Start ---------------------
@@ -144,6 +155,18 @@ if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek ){
 //  ------------------- Input from Meek End ---------------------
 
 
+//  ------------------- Input Home Automation System HASystem Start ---------------------
+if (Meek>=8000 && Meek<=8100){
+  HASystem=(Meek-8000);
+
+Meek = map(HASystem , 100 , 0 , LowerLimit, UpperLimit);
+DimLevel=Meek;}
+
+  
+ 
+
+//  ------------------- Input Home Automation System HASystem End ---------------------
+
 
 //  ------------------- 6002 Full Brightness Command Start ---------------------
 if (Meek==6002){
@@ -179,10 +202,13 @@ Serial.print(" Percent1 =");
 Serial.print(Percent1); 
 Serial.print(" Difference =");
 Serial.print(Difference); 
-Serial.print(" a =");
-Serial.print(a); 
-Serial.print(" b =");
-Serial.print(b); 
+Serial.print(" DimLevel =");
+Serial.print(DimLevel); 
+Serial.print(" HASystem =");
+Serial.print(HASystem); 
+Serial.print(" On =");
+Serial.print(On); 
+
 Serial.print('\n');
 //*/
 delay(InputDelay);
