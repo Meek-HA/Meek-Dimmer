@@ -13,7 +13,7 @@ if devicechanged[DomDevice] then
       else
          print("Other");
          DomValue = otherdevices_svalues[DomDevice];
-         CalcValue = (DomValue*(990/100));
+         CalcValue = (DomValue+8000);
          commandArray['Variable:dimm'] = tostring(CalcValue);
          print ("dimm Level = "..uservariables['dimm']);
    end
