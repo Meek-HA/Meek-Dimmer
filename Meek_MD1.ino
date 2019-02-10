@@ -139,9 +139,9 @@ if (Meek==6000 && On==0){
 On=1;}
   
 //6001=Off
-if (Meek==6001 && dim<UpperLimit && On==1 ){
+if (Meek==6001 && dim<UpperLimit){
   dim=dim+1;}
-if (Meek==6001 && dim==UpperLimit && On==1){
+if (Meek==6001 && dim==UpperLimit){
 On=0;    }
 //  ------------------- Touch Button On Off End ---------------------
 
@@ -159,11 +159,9 @@ if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek ){
 if (Meek>=8000 && Meek<=8100){
   HASystem=(Meek-8000);
 
-Meek = map(HASystem , 100 , 0 , LowerLimit, UpperLimit);
+Meek = map(HASystem , 100 , 0 , (LowerLimit+1), (UpperLimit-1));
 DimLevel=Meek;}
 
-  
- 
 
 //  ------------------- Input Home Automation System HASystem End ---------------------
 
