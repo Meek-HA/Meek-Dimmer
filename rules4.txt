@@ -1,0 +1,6 @@
+on System#Boot do
+nfx,all,100000
+delay,3000
+gpio,16,1
+nfx,one,2,101010
+endon

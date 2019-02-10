@@ -1,0 +1,95 @@
+on TouchMin#TouchMin=1 do
+if [Status#Status]=0
+nfx,one,1,100000
+tone,15,1300,50
+endif
+endon
+
+on TouchMin#TouchMin=0 do
+if [Status#Status]=0
+nfx,one,1,001000
+endif
+endon
+
+on TouchOnOff#TouchOnOff=1 do
+if [Status#Status]=0
+nfx,one,2,101010
+EXTPWM,5,6001
+TaskValueSet 5,2,1
+tone,15,1800,50
+tone,15,1100,30
+nfx,one,1,000000
+nfx,one,3,000000
+else
+nfx,one,2,100000
+EXTPWM,5,6000
+TaskValueSet 5,2,0
+nfx,one,1,001000
+nfx,one,3,001000
+tone,15,1100,30
+tone,15,1800,50
+endif
+endon
+
+on TouchOnOff#TouchOnOff=0 do
+if [Status#Status]=0
+nfx,one,2,001000
+endif
+endon
+
+on TouchPlus#TouchPlus=11 do
+if [Status#Status]=1
+EXTPWM,5,6002
+TaskValueSet 5,2,0
+nfx,one,1,001000
+nfx,one,3,001000
+nfx,one,2,001000
+tone,15,1500,130
+endif
+endon
+
+
+
+on TouchPlus#TouchPlus=1 do
+if [Status#Status]=0
+nfx,one,3,100000
+tone,15,1500,30
+tone,15,1500,30
+endif
+endon
+
+on TouchPlus#TouchPlus=0 do
+if [Status#Status]=0
+nfx,one,3,001000
+endif
+endon
+
+on PME#Value=0 do
+TaskValueSet 5,2,1
+endon
+
+on PME#Value do
+if [PME#Value]>0
+TaskValueSet 5,1,1
+else
+TaskValueSet 5,1,0
+endif
+endon
+
+on toggle do
+if [Status#Status]=0
+nfx,one,2,101010
+TaskValueSet 5,2,1
+tone,15,1800,50
+tone,15,1100,30
+nfx,one,1,000000
+nfx,one,3,000000
+else
+nfx,one,2,001000
+TaskValueSet 5,2,0
+nfx,one,1,001000
+nfx,one,3,001000
+tone,15,1100,30
+tone,15,1800,50
+endif
+endon
