@@ -5,7 +5,7 @@ PIN = "5";
 if devicechanged[DomDevice] then
    if(devicechanged[DomDevice]=='Off') then
      print ("OFF dimm = "..uservariables['dimm']);
-     CalcValue = 990;
+     CalcValue = 6001;
    else if(devicechanged[DomDevice]=='On') then
         DomValue = uservariables['dimm'];
         print ("ON dimm = "..uservariables['dimm']);
