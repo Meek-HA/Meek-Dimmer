@@ -1,5 +1,5 @@
 commandArray = {}
-DomDevice = 'MPDMv4_Dimmer';
+DomDevice = 'Meek MD1';
 IP = '192.168.2.39';
 PIN = "5";
 if devicechanged[DomDevice] then
