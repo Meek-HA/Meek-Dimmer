@@ -1,10 +1,11 @@
-/*Meek MD1 v0.6 10-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller.
+/*Meek MD1 v0.7 11-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller.
 Predefined commands:
 6000 - Turn the Dimmer On and fade up to the last known DimLevel
 6001 - Turn the Dimmer Off by fading down
 6002 - Instant Max. brightness
 6003 – Instant Off.
 5000,5999 - Fade Delay
+8000,8100 - Input Home Automation System (script_device_Meek_MD1.lua for Domoticz)
 Meek – Input from ESPEasy ( e.g. http://<ESP IP>/control?cmd=EXTPWM,5,6000 )
 
 Zero Cross:
@@ -33,8 +34,7 @@ int StepDown=1;
 int StepUp=1;
 int InputDelay=10;
 uint32_t Percent;
-float Percent1;
-int Difference ; 
+uint32_t Percent1;
 int UpperLimit = 990;
 int LowerLimit = 0; 
 int TouchUp = 6;
@@ -125,9 +125,8 @@ if (dim<LowerLimit && dim!=0){
 
 
 //  ------------------- Synchronize Percentage with Home Automation system 0-100% Start ---------------------
-Difference = round(UpperLimit / LowerLimit);
-Percent1=Difference*dim;
-Percent = map(dim , LowerLimit, UpperLimit, 100 , 0);
+Percent1= map(dim , LowerLimit, UpperLimit, 1000 , 0);
+Percent= round(Percent1/10);
 //  ------------------- Synchronize Percentage with Home Automation system 0-100% End ---------------------
 
 
@@ -159,10 +158,8 @@ if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek ){
 if (Meek>=8000 && Meek<=8100){
   HASystem=(Meek-8000);
 
-Meek = map(HASystem , 100 , 0 , (LowerLimit+1), (UpperLimit-1));
+Meek = map(HASystem , 100 , 0 , (LowerLimit), (UpperLimit));
 DimLevel=Meek;}
-
-
 //  ------------------- Input Home Automation System HASystem End ---------------------
 
 
