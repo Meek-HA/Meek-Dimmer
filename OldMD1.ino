@@ -1,52 +1,27 @@
-/*
- * ***************************************************************************************************************************\
- * Arduino project "ESP Easy" � Copyright www.esp8266.nu
- *
- * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
- * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
- * You received a copy of the GNU General Public License along with this program in file 'License.txt'.
- *
- * IDE download    : https://www.arduino.cc/en/Main/Software
- * ESP8266 Package : https://github.com/esp8266/Arduino
- *
- * Source Code     : https://sourceforge.net/projects/espeasy/
- * Support         : http://www.esp8266.nu
- * Discussion      : http://www.esp8266.nu/forum/
- *
- * Additional information about licensing can be found at : http://www.gnu.org/licenses
-**************************************************************************************************************************/
+/*Meek MD1 v0.7.1 12-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
+Meek MD1 Wi-Fi enabled dimmer ( http://www.meek-ha.com/ )
+Predefined commands:
+6000 - Turn the Dimmer On and fade up to the last known DimLevel ( http://192.168.2.39/control?cmd=EXTPWM,5,6000 )
+6001 - Turn the Dimmer Off by fading down ( http://192.168.2.39/control?cmd=EXTPWM,5,6001 )
+6002 - Instant Max. brightness ( http://192.168.2.39/control?cmd=EXTPWM,5,6002 )
+6003 – Instant Off ( http://192.168.2.39/control?cmd=EXTPWM,5,6003 )
+5000,5999 - Fade Delay (Set delay for each dimlevel transition , Default=10 : http://192.168.2.39/control?cmd=EXTPWM,5,5010 )
+4000,4999 - UpperLimit ( UpperLimit range 4000-4999 ,  Default UpperLimit=990: http://192.168.2.39/control?cmd=EXTPWM,5,4990 )
+3000,3999 - LowerLimit (LowerLimit range 3000-3999 ,  Default LowerLimit=0: http://192.168.2.39/control?cmd=EXTPWM,5,3000 )
+8000,8100 - Input Home Automation System (script_device_Meek_MD1.lua for Domoticz , http://192.168.2.39/control?cmd=EXTPWM,5,8050 )
+Meek – Input from ESPEasy ( e.g. http://<ESP IP>/control?cmd=EXTPWM,5,<Value> )
 
-// This file is to be loaded onto an Arduino Pro Mini so it will act as a simple IO extender to the ESP module.
-// Communication between ESP and Arduino is using the I2C bus, so only two wires needed.
-// It best to run the Pro Mini on 3V3, although the 16MHz versions do not officially support this voltage level on this frequency.
-// That way, you can skip levelconverters on I2C.
-// Arduino Mini Pro uses A4 and A5 for I2C bus. ESP I2C can be configured but they are on GPIO-4 and GPIO-5 by default.
+Zero Cross:
+Updated by Robert Twomey
+Adapted from sketch by Ryan McLaughlin
+http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1230333861/30
 
+I2C:
+https://github.com/letscontrolit/ESPEasySlaves/tree/master/MiniProExtender
 
+*/
 
 #include <Wire.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
-
-#define DETECT 2  //zero cross detect
-#define GATE 3    //TRIAC gate
-#define PULSE 4   //trigger pulse width (counts)
-
-int Meek;
-int StepDown=1;
-int StepUp=1;
-int InputDelay=10;
-int Percent;
-int Percent1;
-int Difference ; 
-int UpperLimit = 605;
-int LowerLimit = 150; 
-int TouchUp = 6;
-int TouchDown = 7;
-int DimLevel = 400;
-int Mistik;
 
 #define I2C_MSG_IN_SIZE    4
 #define I2C_MSG_OUT_SIZE   4
@@ -56,51 +31,65 @@ int Mistik;
 #define CMD_ANALOG_WRITE   3
 #define CMD_ANALOG_READ    4
 
-
 volatile uint8_t sendBuffer[I2C_MSG_OUT_SIZE];
 
-void setup()
-{
+int StepDown=1;
+int StepUp=1;
+int InputDelay=10;
+uint32_t Percent;
+uint32_t Percent1;
+int UpperLimit = 990;
+int LowerLimit = 0; 
+int TouchUp = 6;
+int TouchDown = 7;
+int DimLevel = 50;
+int Meek=UpperLimit;
+int HASystem = UpperLimit;
+int On = 0;
+
+#include  <TimerOne.h>        // Avaiable from http://www.arduino.cc/playground/Code/Timer1
+volatile int i=0;             // Variable to use as a counter volatile as it is in an interrupt
+volatile boolean zero_cross=0;// Boolean to store a "switch" to tell us if we have crossed zero
+int AC_pin = 3;               // Output to Opto Triac
+int dim = UpperLimit;         // Dimming level (0-128)  0 = on, 128 = 0ff
+int inc=1;                    // counting up or down, 1=up, -1=down
+int freqStep = 10;            // This is the delay-per-brightness step in microseconds.
+                      
+
+void setup() {                                      // Begin setup
+  pinMode(AC_pin, OUTPUT);                          // Set the Triac pin as output
+  attachInterrupt(0, zero_cross_detect, RISING);    // Attach an Interupt to Pin 2 (interupt 0) for Zero Cross Detection
+  Timer1.initialize(freqStep);                      // Initialize TimerOne library for the freq we need
+  Timer1.attachInterrupt(dim_check, freqStep);      // Use the TimerOne Library to attach an interrupt This function will now run every freqStep in microseconds.     
   Wire.begin(0x7f);
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
- // Serial.begin(9600);
-  pinMode(TouchUp, INPUT); 
-  pinMode(TouchDown, INPUT); 
-
-// set up pins
-  pinMode(DETECT, INPUT);     //zero cross detect
-  digitalWrite(DETECT, HIGH); //enable pull-up resistor
-  pinMode(GATE, OUTPUT);      //TRIAC gate control
-
-  // set up Timer1 
-  //(see ATMEGA 328 data sheet pg 134 for more details)
-  OCR1A = 100;      //initialize the comparator
-  TIMSK1 = 0x03;    //enable comparator A and overflow interrupts
-  TCCR1A = 0x00;    //timer control registers set for
-  TCCR1B = 0x00;    //normal operation, timer disabled
-
-  attachInterrupt(0,zeroCrossingInterrupt, RISING);    
- 
+// Serial.begin(9600);                              
 }
 
-void zeroCrossingInterrupt(){ //zero cross detect   
-  TCCR1B=0x04; //start timer with divide by 256 input
-  TCNT1 = 0;   //reset timer - count from zero
-}
+void zero_cross_detect() {    
+  zero_cross = true;               // set the boolean to true to tell our dimming function that a zero cross has occured
+  i=0;
+  digitalWrite(AC_pin, LOW);       // turn off TRIAC (and AC)
+}                                 
 
-ISR(TIMER1_COMPA_vect){ //comparator match
-  digitalWrite(GATE,HIGH);  //set TRIAC gate to high
-  TCNT1 = 65536-PULSE;      //trigger pulse width
-}
+//  ------------------- Turn on the TRIAC at the appropriate time Begin ---------------------
+void dim_check() {                   
+  if(zero_cross == true) {              
+    if(i>=dim) {                     
+      digitalWrite(AC_pin, HIGH);   // turn on light       
+      i=0;                          // reset time step counter                         
+      zero_cross = false;           //reset zero cross detection
+    } 
+    else {
+      i++;                          // increment time step counter                     
+    }                                
+  }                                  
+}                                   
+//  ------------------- Turn on the TRIAC at the appropriate time End ---------------------
 
-ISR(TIMER1_OVF_vect){ //timer1 overflow
-  digitalWrite(GATE,LOW); //turn off TRIAC gate
-  TCCR1B = 0x00;          //disable timer stopd unintended triggers
-}
 
-
-void loop() {
+void loop() {                        
 
 //  ------------------- Up & Down Button Begin ---------------------
 digitalWrite(TouchUp, LOW);
@@ -108,124 +97,131 @@ digitalWrite(TouchDown, LOW);
 int Down = digitalRead(TouchDown);
 int Up = digitalRead(TouchUp);
 
-if (Up == HIGH && Meek >=LowerLimit && Meek<=UpperLimit){
-Meek=Meek +1 ;}
-if (Up == HIGH && OCR1A==0 ){
-Meek=UpperLimit;}
-if ( Down == HIGH && Meek >=LowerLimit && Meek<=UpperLimit){
-Meek=Meek -1 ;}
-if ((Down == HIGH) && (OCR1A==0 )){
-Meek=LowerLimit;}
+if (Down == HIGH && dim>(LowerLimit) && dim<=(UpperLimit) && On==(1) && Meek!=6001){   
+dim=dim-1;
+DimLevel=dim;
+Meek=DimLevel;}
 
+if (Down == HIGH && Meek==6000){   
+dim=dim-1;
+DimLevel=dim;
+Meek=DimLevel;}
+
+if (Up == HIGH && Meek==6000){   
+dim=dim+1;
+DimLevel=dim;
+Meek=DimLevel;}
+
+if ( Up == HIGH && dim>=(LowerLimit) && dim<(UpperLimit) && On==(1) && Meek!=6001){
+dim=dim+1;
+DimLevel=dim;
+Meek=DimLevel;}
 //  ------------------- Up & Down Button End ---------------------
 
 
-//  ------------------- DimLevel Start ---------------------
-if (Meek >= LowerLimit && Meek <=UpperLimit){
-  DimLevel=Meek;
-}
-//  ------------------- DimLevel End ---------------------
 //  ------------------- Maintain Upper & LowerLimit Start ---------------------
-if (OCR1A>UpperLimit) {
-OCR1A=UpperLimit;}
-if (OCR1A>0 && OCR1A<=LowerLimit) {
-OCR1A=LowerLimit;}
-if (Meek ==0){
-  OCR1A=0;}
+if (dim>UpperLimit){
+  dim=UpperLimit;}
+
+if (dim<LowerLimit && dim!=0){
+  dim=LowerLimit;}
 //  ------------------- Maintain Upper & LowerLimit End ---------------------
-//  ------------------- Synchronize Meek with OCR1A Start ---------------------
-if (Meek>=LowerLimit && Meek<=UpperLimit) {  
-OCR1A = Meek;     }
-//  ------------------- Synchronize Meek with OCR1A Start ---------------------
-//  ------------------- Synchronize Percentage with Home AUtomation system 0-100% Start ---------------------
-Difference = round(UpperLimit / LowerLimit);
-if (Meek>=LowerLimit && Meek<=UpperLimit) {
-  Percent = map(OCR1A , LowerLimit, UpperLimit, 100 , 0);}
-//  ------------------- Synchronize Percentage with Home AUtomation system 0-100% End ---------------------
+
+
+//  ------------------- Synchronize Percentage with Home Automation system 0-100% Start ---------------------
+Percent1= map(dim , LowerLimit, UpperLimit, 1000 , 0);
+Percent= round(Percent1/10);
+//  ------------------- Synchronize Percentage with Home Automation system 0-100% End ---------------------
+
+
 //  ------------------- Touch Button On Off Start ---------------------
-if (Meek==6000 && OCR1A==0 ){
-  OCR1A=UpperLimit;} 
-if (Meek==6000 && OCR1A>=DimLevel){
-  OCR1A=OCR1A-1;} 
-if (Meek==6000 && OCR1A<=DimLevel){
-  OCR1A=OCR1A+1;} 
-   
-if (Meek==6001 && OCR1A<UpperLimit ){
-  OCR1A=OCR1A+1;}
-if (Meek==6001 && OCR1A==UpperLimit ){
-  OCR1A=0;
-  Meek=0;
-  }
-  if (OCR1A==DimLevel){
-  Meek=DimLevel;} 
+//6000=On
+if (Meek==6000 && dim!=DimLevel && On==1){
+  dim=dim-1;}
+if (Meek==6000 && On==0){
+On=1;}
+  
+//6001=Off
+if (Meek==6001 && dim<UpperLimit){
+  dim=dim+1;}
+if (Meek==6001 && dim==UpperLimit){
+On=0;    }
 //  ------------------- Touch Button On Off End ---------------------
-//  ------------------- Store DimLevel Start ---------------------
-//if (Meek >=LowerLimit && Meek <=UpperLimit && OCR1A>=LowerLimit && OCR1A<=UpperLimit){
-//  DimLevel=Meek;}
-//  ------------------- Store DimLevel End ---------------------
-
-//if (Meek>=500 && Meek<=600) {
-//OCR1A =map(Meek,1,100, LowerLimit,UpperLimit);}
-//if (Meek>=500 && Meek<=600) {
-//  OCR1A =map(Meek,500,600, LowerLimit,UpperLimit);}
-//if (Meek>=LowerLimit && Meek<=UpperLimit && Difference > (Percent-Percent1)) {
-//  Percent = Percent1;}
-//-------------------------------------------------------------------------------
-//if (Meek>=1300 && Meek<=1399){
-//  LowerLimit=(Meek-1300);} 
-//if (Meek>=2000 && Meek<=2999){
-//  UpperLimit=(Meek-2000);} 
-//if (Meek>=1500 && Meek<=1599){
-//  StepDown=(Meek-1500);} 
-//if (Meek>=1500 && Meek<=1599){
-//  StepDown=(Meek-1500);} 
-//if (Meek>=1600 && Meek<=1699){
-//  StepUp=(Meek-1600);} 
-//if (Meek>=1700 && Meek<=1799){
-//  InputDelay=(Meek-1700);}   
-//if (Meek>=1800 && Meek<=1899 && OCR1A>LowerLimit && OCR1A<=(UpperLimit-2)){
-//  OCR1A=(OCR1A-(Meek-1800));} 
-//if (Meek>=1900 && Meek<=1999 && OCR1A>=LowerLimit && OCR1A<(UpperLimit-2) ){
-//  OCR1A=(OCR1A+(Meek-1900));} 
-//if (Meek==2000 && OCR1A>=LowerLimit && OCR1A<=(UpperLimit-2)){
-//  OCR1A=(OCR1A+1);} 
-//if (Meek==5000 && OCR1A==(UpperLimit-1)){
-//  OCR1A=(0);} 
-//if (Meek==3001 && OCR1A==0){
-//  OCR1A=(UpperLimit);} 
-//if (Meek==4001 && OCR1A<=(UpperLimit-2) && OCR1A>=LowerLimit){
-//  OCR1A=(OCR1A-1);} 
 
 
+//  ------------------- Input from Meek Start ---------------------
+if (Meek>LowerLimit && Meek<=UpperLimit && dim!=Meek && dim>=Meek ){
+  dim=dim-1;    }
+  
+if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek ){
+  dim=dim+1;    }
+//  ------------------- Input from Meek End ---------------------
 
-//-------------------------------------------------------------------------------
+
+//  ------------------- Input Home Automation System HASystem Start ---------------------
+if (Meek>=8000 && Meek<=8100){
+  HASystem=(Meek-8000);
+Meek = map(HASystem , 100 , 0 , (LowerLimit), (UpperLimit));
+DimLevel=Meek;
+On=1;}
+//  ------------------- Input Home Automation System HASystem End ---------------------
 
 
-Serial.print("Meek = ");  
+//  ------------------- 6002 Full Brightness Command Start ---------------------
+if (Meek==6002){
+  dim=LowerLimit;
+  DimLevel=dim;
+  On=1;
+  Meek=6000;}
+//  ------------------- 6002 Full Brightness Command End ---------------------
+
+
+//  ------------------- 5000,5999 - Fade Delay Start ---------------------
+if (Meek>=5000 && Meek<=5999){
+  InputDelay=Meek-5000;}
+//  ------------------- 5000,5999 - Fade Delay End ---------------------
+
+
+//  ------------------- Set UpperLimit(4000,4999) & LowerLimit(3000,3999) Start ---------------------
+if (Meek>=4000 && Meek<=4999){
+  UpperLimit=Meek-4000;}
+if (Meek>=3000 && Meek<=3999){
+  LowerLimit=Meek-3000;}
+//  ------------------- Set UpperLimit(4000,4999) & LowerLimit(3000,3999) End ---------------------
+
+
+
+/*
+Serial.print("Dim = ");  
+Serial.print(dim);
+Serial.print("Inc = ");  
+Serial.print(inc);
+Serial.print("i = ");  
+Serial.print(i);
+Serial.print(" Meek = ");  
 Serial.print(Meek);
-Serial.print("OCR1A = ");  
-Serial.print(OCR1A);
-//Serial.print("Percent =");
-//Serial.print(Percent); 
-//Serial.print("Difference =");
-//Serial.print(Difference); 
-//Serial.print("Percent11111 =");
-//Serial.print(Percent1); 
-Serial.print("Up =");
+Serial.print(" Up =");
 Serial.print(Up); 
-Serial.print("DimLevel =");
-Serial.print(DimLevel); 
-//Serial.print("Upp =");
-//Serial.print(Up); 
-Serial.print("Down =");
+Serial.print(" Down =");
 Serial.print(Down); 
-//Serial.print("Mistik =");
-//Serial.print(Mistik); 
-//delay(1000);
-Serial.print('\n');
+Serial.print(" Percent =");
+Serial.print(Percent); 
+Serial.print(" Percent1 =");
+Serial.print(Percent1); 
+Serial.print(" Difference =");
+Serial.print(Difference); 
+Serial.print(" DimLevel =");
+Serial.print(DimLevel); 
+Serial.print(" HASystem =");
+Serial.print(HASystem); 
+Serial.print(" On =");
+Serial.print(On); 
 
-        
-delay(InputDelay);}
+Serial.print('\n');
+//*/
+delay(InputDelay);
+  
+}
 
 
 void receiveEvent(int count)
@@ -244,18 +240,19 @@ void receiveEvent(int count)
           break;
         case CMD_DIGITAL_READ:
           pinMode(port,INPUT_PULLUP);
-          clearSendBuffer();
-          sendBuffer[0] = digitalRead(port);
-          break;
+         clearSendBuffer();
+         sendBuffer[0] = digitalRead(port);
+         break;
         case CMD_ANALOG_WRITE:
-          //analogWrite(port,value);
+          analogWrite(port,value);
           Meek=(value);
           break;
-        case CMD_ANALOG_READ:
-          clearSendBuffer();
-          int valueRead = Percent;
+       case CMD_ANALOG_READ:
+         clearSendBuffer();
+         uint32_t valueRead = Percent;
+          //int valueRead = analogRead(port);
           sendBuffer[0] = valueRead & 0xff;
-          sendBuffer[1] = valueRead >> 8;
+         sendBuffer[1] = valueRead >> 8;
           break;
       }
   }
