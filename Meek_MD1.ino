@@ -51,7 +51,7 @@ int On = 0;
 volatile int i=0;             // Variable to use as a counter volatile as it is in an interrupt
 volatile boolean zero_cross=0;// Boolean to store a "switch" to tell us if we have crossed zero
 int AC_pin = 3;               // Output to Opto Triac
-int dim = UpperLimit;         // Dimming level (0-128)  0 = on, 128 = 0ff
+int dim = UpperLimit;         // Dimming level (0-990)  0 = on, 990 = 0ff
 int inc=1;                    // counting up or down, 1=up, -1=down
 int freqStep = 10;            // This is the delay-per-brightness step in microseconds.
                       
