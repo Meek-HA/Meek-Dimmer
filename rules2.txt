@@ -1,0 +1,20 @@
+on off do
+nfx,one,2,101010
+TaskValueSet 5,2,1
+tone,15,1800,50
+tone,15,1100,30
+nfx,one,1,000000
+nfx,one,3,000000
+endon
+
+on on do
+if [Status#Status]=1
+nfx,one,2,001000
+TaskValueSet 5,2,0
+nfx,one,1,001000
+nfx,one,3,001000
+tone,15,1100,30
+tone,15,1800,50
+nfx,one,2,001000
+endif
+endon

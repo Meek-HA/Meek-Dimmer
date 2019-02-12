@@ -76,6 +76,16 @@ TaskValueSet 5,1,0
 endif
 endon
 
+on PME#Value do
+if [PME#Value]!=[Status#DimLevel]
+TaskValueSet 5,3,[PME#Value]
+//http://192.168.2.152:8181/json.htm?type=command&param=switchlight&idx=2&switchcmd=Set%20Level&level=10
+SendToHTTP 192.168.2.152,8181,/json.htm?type=command&param=switchlight&idx=2&switchcmd=Set%20Level&level=[PME#Value]
+endon
+
+
+
+
 on toggle do
 if [Status#Status]=0
 nfx,one,2,101010
