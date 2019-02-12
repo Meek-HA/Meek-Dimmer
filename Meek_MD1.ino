@@ -1,4 +1,5 @@
-/*Meek MD1 v0.7 11-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller.
+/*Meek MD1 v0.7.1 12-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
+Meek MD1 Wi-Fi enabled dimmer ( http://www.meek-ha.com/ )
 Predefined commands:
 6000 - Turn the Dimmer On and fade up to the last known DimLevel
 6001 - Turn the Dimmer Off by fading down
@@ -94,7 +95,7 @@ digitalWrite(TouchDown, LOW);
 int Down = digitalRead(TouchDown);
 int Up = digitalRead(TouchUp);
 
-if (Down == HIGH && dim>(LowerLimit) && dim<=(UpperLimit) && On==(1)){   
+if (Down == HIGH && dim>(LowerLimit) && dim<=(UpperLimit) && On==(1) && Meek!=6001){   
 dim=dim-1;
 DimLevel=dim;
 Meek=DimLevel;}
@@ -109,7 +110,7 @@ dim=dim+1;
 DimLevel=dim;
 Meek=DimLevel;}
 
-if ( Up == HIGH && dim>=(LowerLimit) && dim<(UpperLimit) && On==(1)){
+if ( Up == HIGH && dim>=(LowerLimit) && dim<(UpperLimit) && On==(1) && Meek!=6001){
 dim=dim+1;
 DimLevel=dim;
 Meek=DimLevel;}
@@ -157,9 +158,9 @@ if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek ){
 //  ------------------- Input Home Automation System HASystem Start ---------------------
 if (Meek>=8000 && Meek<=8100){
   HASystem=(Meek-8000);
-
 Meek = map(HASystem , 100 , 0 , (LowerLimit), (UpperLimit));
-DimLevel=Meek;}
+DimLevel=Meek;
+On=1;}
 //  ------------------- Input Home Automation System HASystem End ---------------------
 
 
