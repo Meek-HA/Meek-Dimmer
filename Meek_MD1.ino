@@ -1,13 +1,15 @@
 /*Meek MD1 v0.7.1 12-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
 Meek MD1 Wi-Fi enabled dimmer ( http://www.meek-ha.com/ )
 Predefined commands:
-6000 - Turn the Dimmer On and fade up to the last known DimLevel
-6001 - Turn the Dimmer Off by fading down
-6002 - Instant Max. brightness
-6003 – Instant Off.
-5000,5999 - Fade Delay
-8000,8100 - Input Home Automation System (script_device_Meek_MD1.lua for Domoticz)
-Meek – Input from ESPEasy ( e.g. http://<ESP IP>/control?cmd=EXTPWM,5,6000 )
+6000 - Turn the Dimmer On and fade up to the last known DimLevel ( http://192.168.2.39/control?cmd=EXTPWM,5,6000 )
+6001 - Turn the Dimmer Off by fading down ( http://192.168.2.39/control?cmd=EXTPWM,5,6001 )
+6002 - Instant Max. brightness ( http://192.168.2.39/control?cmd=EXTPWM,5,6002 )
+6003 – Instant Off ( http://192.168.2.39/control?cmd=EXTPWM,5,6003 )
+5000,5999 - Fade Delay (Set delay for each dimlevel transition , Default=10 : http://192.168.2.39/control?cmd=EXTPWM,5,5010 )
+4000,4999 - UpperLimit ( UpperLimit range 4000-4999 ,  Default UpperLimit=990: http://192.168.2.39/control?cmd=EXTPWM,5,4990 )
+3000,3999 - LowerLimit (LowerLimit range 3000-3999 ,  Default LowerLimit=0: http://192.168.2.39/control?cmd=EXTPWM,5,3000 )
+8000,8100 - Input Home Automation System (script_device_Meek_MD1.lua for Domoticz , http://192.168.2.39/control?cmd=EXTPWM,5,8050 )
+Meek – Input from ESPEasy ( e.g. http://<ESP IP>/control?cmd=EXTPWM,5,<Value> )
 
 Zero Cross:
 Updated by Robert Twomey
@@ -116,6 +118,7 @@ DimLevel=dim;
 Meek=DimLevel;}
 //  ------------------- Up & Down Button End ---------------------
 
+
 //  ------------------- Maintain Upper & LowerLimit Start ---------------------
 if (dim>UpperLimit){
   dim=UpperLimit;}
@@ -172,10 +175,19 @@ if (Meek==6002){
   Meek=6000;}
 //  ------------------- 6002 Full Brightness Command End ---------------------
 
+
 //  ------------------- 5000,5999 - Fade Delay Start ---------------------
 if (Meek>=5000 && Meek<=5999){
   InputDelay=Meek-5000;}
 //  ------------------- 5000,5999 - Fade Delay End ---------------------
+
+
+//  ------------------- Set UpperLimit(4000,4999) & LowerLimit(3000,3999) Start ---------------------
+if (Meek>=4000 && Meek<=4999){
+  UpperLimit=Meek-4000;}
+if (Meek>=3000 && Meek<=3999){
+  LowerLimit=Meek-3000;}
+//  ------------------- Set UpperLimit(4000,4999) & LowerLimit(3000,3999) End ---------------------
 
 
 
