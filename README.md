@@ -12,3 +12,8 @@ http://192.168.2.152:8181/json.htm?type=command&param=switchlight&idx=2&switchcm
 
 Send Feedback from Meek MD1 to Domoticz:
 SendToHTTP 192.168.2.152,8181,/json.htm?type=command&param=switchlight&idx=2&switchcmd=Set%20Level&level=[PME#Value]
+
+Send a specifik PWM/Dim value:
+http://192.168.2.39/control?cmd=EXTPWM,5,350
+
+Set limiters for your Light system
