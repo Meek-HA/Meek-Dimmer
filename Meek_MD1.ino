@@ -61,7 +61,7 @@ void setup() {                                      // Begin setup
   attachInterrupt(0, zero_cross_detect, RISING);    // Attach an Interupt to Pin 2 (interupt 0) for Zero Cross Detection
   Timer1.initialize(freqStep);                      // Initialize TimerOne library for the freq we need
   Timer1.attachInterrupt(dim_check, freqStep);      // Use the TimerOne Library to attach an interrupt This function will now run every freqStep in microseconds.     
-  Wire.begin(0x7f);
+  Wire.begin(0x7f);                                 // I2C communication address
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
 // Serial.begin(9600);                              
