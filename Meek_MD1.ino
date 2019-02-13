@@ -1,15 +1,17 @@
-/*Meek MD1 v0.7.1 12-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
+/*Meek MD1 v0.7.2 13-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
 Meek MD1 Wi-Fi enabled dimmer ( http://www.meek-ha.com/ )
 Predefined commands:
-6000 - Turn the Dimmer On and fade up to the last known DimLevel ( http://192.168.2.39/control?cmd=EXTPWM,5,6000 )
-6001 - Turn the Dimmer Off by fading down ( http://192.168.2.39/control?cmd=EXTPWM,5,6001 )
-6002 - Instant Max. brightness ( http://192.168.2.39/control?cmd=EXTPWM,5,6002 )
-6003 – Instant Off ( http://192.168.2.39/control?cmd=EXTPWM,5,6003 )
-5000,5999 - Fade Delay (Set delay for each dimlevel transition , Default=10 : http://192.168.2.39/control?cmd=EXTPWM,5,5010 )
-4000,4999 - UpperLimit ( UpperLimit range 4000-4999 ,  Default UpperLimit=990: http://192.168.2.39/control?cmd=EXTPWM,5,4990 )
-3000,3999 - LowerLimit (LowerLimit range 3000-3999 ,  Default LowerLimit=0: http://192.168.2.39/control?cmd=EXTPWM,5,3000 )
-8000,8100 - Input Home Automation System (script_device_Meek_MD1.lua for Domoticz , http://192.168.2.39/control?cmd=EXTPWM,5,8050 )
-Meek – Input from ESPEasy ( e.g. http://<ESP IP>/control?cmd=EXTPWM,5,<Value> )
+6000 - Turn the Dimmer On and fade up to the last known DimLevel : http://192.168.2.39/control?cmd=EXTPWM,5,6000 
+6001 - Turn the Dimmer Off by fading down : http://192.168.2.39/control?cmd=EXTPWM,5,6001 
+6002 - Instant Max. brightness : http://192.168.2.39/control?cmd=EXTPWM,5,6002 
+6003 – Instant Off : http://192.168.2.39/control?cmd=EXTPWM,5,6003 
+6004 - Demo mode On - Loop Fade from LowerLimit to UpperLimit and back.
+6005 - Demo mode Off
+5000,5999 - Fade Delay ; Set delay for each dimlevel transition , Default=10 : http://192.168.2.39/control?cmd=EXTPWM,5,5010 
+4000,4999 - UpperLimit ; UpperLimit range 4000-4999 ,  Default UpperLimit=990: http://192.168.2.39/control?cmd=EXTPWM,5,4990 
+3000,3999 - LowerLimit ; LowerLimit range 3000-3999 ,  Default LowerLimit=0: http://192.168.2.39/control?cmd=EXTPWM,5,3000 
+8000,8100 - Input Home Automation System ; script_device_Meek_MD1.lua for Domoticz , http://192.168.2.39/control?cmd=EXTPWM,5,8050 
+Meek – Input from ESPEasy ; e.g. http://<ESP IP>/control?cmd=EXTPWM,5,<Value> 
 
 Zero Cross:
 Updated by Robert Twomey
@@ -46,6 +48,7 @@ int DimLevel = 50;
 int Meek=UpperLimit;
 int HASystem = UpperLimit;
 int On = 0;
+int Demo = 0;
 
 #include  <TimerOne.h>        // Avaiable from http://www.arduino.cc/playground/Code/Timer1
 volatile int i=0;             // Variable to use as a counter volatile as it is in an interrupt
@@ -188,6 +191,27 @@ if (Meek>=4000 && Meek<=4999){
 if (Meek>=3000 && Meek<=3999){
   LowerLimit=Meek-3000;}
 //  ------------------- Set UpperLimit(4000,4999) & LowerLimit(3000,3999) End ---------------------
+
+
+//  ------------------- Demo Mode Start ---------------------
+if (Meek==6004 && Demo==0){
+  dim=LowerLimit;
+  Demo=1;}
+if (Demo==1 && dim<UpperLimit){
+  dim=dim+1;}
+if (Demo==1 && dim==UpperLimit){
+  Demo=2;
+  dim=dim-1;}
+if (Demo==2 && dim>LowerLimit){
+  dim=dim-1;}
+if (Demo==2 && dim==LowerLimit){
+  Demo=1;
+  dim=dim+1;}
+
+if (Meek==6005){
+  dim=UpperLimit;
+  Demo=0;}
+//  ------------------- Demo Mode End ---------------------
 
 
 
