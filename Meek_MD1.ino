@@ -5,8 +5,8 @@ Predefined commands:
 6001 - Turn the Dimmer Off by fading down : http://192.168.2.39/control?cmd=EXTPWM,5,6001 
 6002 - Instant Max. brightness : http://192.168.2.39/control?cmd=EXTPWM,5,6002 
 6003 – Instant Off : http://192.168.2.39/control?cmd=EXTPWM,5,6003 
-6004 - Demo mode On - Loop Fade from LowerLimit to UpperLimit and back.
-6005 - Demo mode Off
+6004 - Demo mode On - Loop Fade from LowerLimit to UpperLimit and back : http://192.168.2.39/control?cmd=EXTPWM,5,6004
+6005 - Demo mode Off : http://192.168.2.39/control?cmd=EXTPWM,5,6005
 5000,5999 - Fade Delay ; Set delay for each dimlevel transition , Default=10 : http://192.168.2.39/control?cmd=EXTPWM,5,5010 
 4000,4999 - UpperLimit ; UpperLimit range 4000-4999 ,  Default UpperLimit=990: http://192.168.2.39/control?cmd=EXTPWM,5,4990 
 3000,3999 - LowerLimit ; LowerLimit range 3000-3999 ,  Default LowerLimit=0: http://192.168.2.39/control?cmd=EXTPWM,5,3000 
