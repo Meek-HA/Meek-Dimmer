@@ -1,4 +1,4 @@
-/*Meek MD1 v0.7.2 13-Feb-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
+/*Meek MD1 v0.7.3 14-Mar-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
 Meek MD1 Wi-Fi enabled dimmer ( http://www.meek-ha.com/ )
 Predefined commands:
 6000 - Turn the Dimmer On and fade up to the last known DimLevel : http://192.168.2.39/control?cmd=EXTPWM,5,6000 
@@ -49,6 +49,8 @@ int Meek=UpperLimit;
 int HASystem = UpperLimit;
 int On = 0;
 int Demo = 0;
+unsigned long previousMillis = 0;
+int DelayState = LOW;
 
 #include  <TimerOne.h>        // Avaiable from http://www.arduino.cc/playground/Code/Timer1
 volatile int i=0;             // Variable to use as a counter volatile as it is in an interrupt
@@ -100,25 +102,29 @@ digitalWrite(TouchDown, LOW);
 int Down = digitalRead(TouchDown);
 int Up = digitalRead(TouchUp);
 
-if (Down == HIGH && dim>(LowerLimit) && dim<=(UpperLimit) && On==(1) && Meek!=6001){   
+if (Down == HIGH && dim>(LowerLimit) && dim<=(UpperLimit) && On==(1) && Meek!=6001 && DelayState == HIGH){   
 dim=dim-1;
 DimLevel=dim;
-Meek=DimLevel;}
+Meek=DimLevel;
+DelayState = LOW;}
 
-if (Down == HIGH && Meek==6000){   
+if (Down == HIGH && Meek==6000 && DelayState == HIGH){   
 dim=dim-1;
 DimLevel=dim;
-Meek=DimLevel;}
+Meek=DimLevel;
+DelayState = LOW;}
 
-if (Up == HIGH && Meek==6000){   
+if (Up == HIGH && Meek==6000 && DelayState == HIGH){   
 dim=dim+1;
 DimLevel=dim;
-Meek=DimLevel;}
+Meek=DimLevel;
+DelayState = LOW;}
 
-if ( Up == HIGH && dim>=(LowerLimit) && dim<(UpperLimit) && On==(1) && Meek!=6001){
+if ( Up == HIGH && dim>=(LowerLimit) && dim<(UpperLimit) && On==(1) && Meek!=6001 && DelayState == HIGH){
 dim=dim+1;
 DimLevel=dim;
-Meek=DimLevel;}
+Meek=DimLevel;
+DelayState = LOW;}
 //  ------------------- Up & Down Button End ---------------------
 
 
@@ -139,25 +145,29 @@ Percent= round(Percent1/10);
 
 //  ------------------- Touch Button On Off Start ---------------------
 //6000=On
-if (Meek==6000 && dim!=DimLevel && On==1){
-  dim=dim-1;}
+if (Meek==6000 && dim!=DimLevel && On==1 && DelayState == HIGH){
+  dim=dim-1;
+  DelayState = LOW;}
 if (Meek==6000 && On==0){
 On=1;}
   
 //6001=Off
-if (Meek==6001 && dim<UpperLimit){
-  dim=dim+1;}
+if (Meek==6001 && dim<UpperLimit && DelayState == HIGH){
+  dim=dim+1;
+  DelayState = LOW;}
 if (Meek==6001 && dim==UpperLimit){
 On=0;    }
 //  ------------------- Touch Button On Off End ---------------------
 
 
 //  ------------------- Input from Meek Start ---------------------
-if (Meek>LowerLimit && Meek<=UpperLimit && dim!=Meek && dim>=Meek ){
-  dim=dim-1;    }
+if (Meek>LowerLimit && Meek<=UpperLimit && dim!=Meek && dim>=Meek && DelayState == HIGH){
+  dim=dim-1;
+  DelayState = LOW;}
   
-if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek ){
-  dim=dim+1;    }
+if (Meek>=LowerLimit && Meek<UpperLimit && dim!=Meek && dim<=Meek && DelayState == HIGH){
+  dim=dim+1;
+  DelayState = LOW;}
 //  ------------------- Input from Meek End ---------------------
 
 
@@ -197,22 +207,39 @@ if (Meek>=3000 && Meek<=3999){
 if (Meek==6004 && Demo==0){
   dim=LowerLimit;
   Demo=1;}
-if (Demo==1 && dim<UpperLimit){
-  dim=dim+1;}
-if (Demo==1 && dim==UpperLimit){
+if (Demo==1 && dim<UpperLimit && DelayState == HIGH){
+  dim=dim+1;
+  DelayState = LOW;}
+if (Demo==1 && dim==UpperLimit && DelayState == HIGH){
   Demo=2;
-  dim=dim-1;}
-if (Demo==2 && dim>LowerLimit){
-  dim=dim-1;}
-if (Demo==2 && dim==LowerLimit){
+  dim=dim-1;
+  DelayState = LOW;}
+if (Demo==2 && dim>LowerLimit && DelayState == HIGH){
+  dim=dim-1;
+  DelayState = LOW;}
+if (Demo==2 && dim==LowerLimit && DelayState == HIGH){
   Demo=1;
-  dim=dim+1;}
+  dim=dim+1;
+  DelayState = LOW;}
 
 if (Meek==6005){
   dim=UpperLimit;
   Demo=0;}
 //  ------------------- Demo Mode End ---------------------
 
+//  ------------------- Delay Function Start ---------------------
+unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= InputDelay) {
+        previousMillis = currentMillis;
+
+        if (DelayState == LOW) {
+      DelayState = HIGH;
+    } else {
+      DelayState = LOW;
+    }
+  }
+//  ------------------- Delay Function End ---------------------
 
 
 /*
@@ -243,7 +270,6 @@ Serial.print(On);
 
 Serial.print('\n');
 //*/
-delay(InputDelay);
   
 }
 
