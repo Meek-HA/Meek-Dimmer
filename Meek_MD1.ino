@@ -1,4 +1,4 @@
-/*Meek MD1 v0.7.3 14-Mar-2019, Atmega328 Source Code for Zero Cross-, I2C, Interface controller for
+/*Meek MD1 v0.7.4 13-Apr-2019, Atmega328 Source Code for ; Zero Cross-, I2C communications & Interface controller.
 Meek MD1 Wi-Fi enabled dimmer ( http://www.meek-ha.com/ )
 Predefined commands:
 6000 - Turn the Dimmer On and fade up to the last known DimLevel : http://192.168.2.39/control?cmd=EXTPWM,5,6000 
@@ -7,7 +7,7 @@ Predefined commands:
 6003 – Instant Off : http://192.168.2.39/control?cmd=EXTPWM,5,6003 
 6004 - Demo mode On - Loop Fade from LowerLimit to UpperLimit and back : http://192.168.2.39/control?cmd=EXTPWM,5,6004
 6005 - Demo mode Off : http://192.168.2.39/control?cmd=EXTPWM,5,6005
-5000,5999 - Fade Delay ; Set delay for each dimlevel transition , Default=10 : http://192.168.2.39/control?cmd=EXTPWM,5,5010 
+5000,5999 - Fade Delay ; Set delay for each dimlevel transition , Default=7 : http://192.168.2.39/control?cmd=EXTPWM,5,5007 
 4000,4999 - UpperLimit ; UpperLimit range 4000-4999 ,  Default UpperLimit=990: http://192.168.2.39/control?cmd=EXTPWM,5,4990 
 3000,3999 - LowerLimit ; LowerLimit range 3000-3999 ,  Default LowerLimit=0: http://192.168.2.39/control?cmd=EXTPWM,5,3000 
 8000,8100 - Input Home Automation System ; script_device_Meek_MD1.lua for Domoticz , http://192.168.2.39/control?cmd=EXTPWM,5,8050 
@@ -37,7 +37,7 @@ volatile uint8_t sendBuffer[I2C_MSG_OUT_SIZE];
 
 int StepDown=1;
 int StepUp=1;
-int InputDelay=10;
+int InputDelay=7;
 uint32_t Percent;
 uint32_t Percent1;
 int UpperLimit = 990;
@@ -187,6 +187,15 @@ if (Meek==6002){
   On=1;
   Meek=6000;}
 //  ------------------- 6002 Full Brightness Command End ---------------------
+
+
+//  ------------------- 6003 Full Brightness Command Start ---------------------
+if (Meek==6003){
+  dim=UpperLimit;
+  DimLevel=dim;
+  On=0;
+  Meek=6001;}
+//  ------------------- 6003 Full Brightness Command End ---------------------
 
 
 //  ------------------- 5000,5999 - Fade Delay Start ---------------------
